@@ -1,3 +1,28 @@
 @CategoriesProducts.Api_HostAddress = http://localhost:5071
 
+### Crear una categoría
+POST {{CategoriesProducts.Api_HostAddress}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Bebidas",
+  "description": "Refrescos, jugos y agua"
+}
+
+### Crear una categoría con nombre repetido (409)
+POST {{CategoriesProducts.Api_HostAddress}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "BEBIDAS"
+}
+
+### Crear una categoría sin nombre (400)
+POST {{CategoriesProducts.Api_HostAddress}}/api/categories
+Content-Type: application/json
+
+{
+  "description": "Sin nombre"
+}
+
 ###

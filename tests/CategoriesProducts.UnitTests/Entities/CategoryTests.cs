@@ -32,6 +32,25 @@ public class CategoryTests
         Assert.Equal("LÁCTEOS", category.NormalizedName);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Description_WhenEmpty_IsNull(string? description)
+    {
+        var category = new Category { Name = "Bebidas", Description = description };
+
+        Assert.Null(category.Description);
+    }
+
+    [Fact]
+    public void Description_IsTrimmed()
+    {
+        var category = new Category { Name = "Bebidas", Description = "  Refrescos  " };
+
+        Assert.Equal("Refrescos", category.Description);
+    }
+
     [Fact]
     public void NormalizedName_IsUpdatedWhenNameChanges()
     {

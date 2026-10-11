@@ -6,6 +6,7 @@ public class Product
     public const int DescriptionMaxLength = 500;
 
     private string _name = string.Empty;
+    private string? _description;
 
     public int Id { get; set; }
 
@@ -15,7 +16,11 @@ public class Product
         set => _name = value.Trim();
     }
 
-    public string? Description { get; set; }
+    public string? Description
+    {
+        get => _description;
+        set => _description = TextNormalizer.OptionalText(value);
+    }
 
     public int CategoryId { get; set; }
 

@@ -6,6 +6,7 @@ public class Category
     public const int DescriptionMaxLength = 500;
 
     private string _name = string.Empty;
+    private string? _description;
 
     public int Id { get; set; }
 
@@ -22,7 +23,11 @@ public class Category
     // Copia del nombre en mayúsculas con índice único: así la unicidad no depende de la collation de la base de datos.
     public string NormalizedName { get; private set; } = string.Empty;
 
-    public string? Description { get; set; }
+    public string? Description
+    {
+        get => _description;
+        set => _description = TextNormalizer.OptionalText(value);
+    }
 
     public ICollection<Product> Products { get; } = [];
 
