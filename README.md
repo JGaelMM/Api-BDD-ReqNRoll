@@ -94,6 +94,7 @@ dotnet test
 ## Supuestos
 
 - Se ignoran espacios al inicio y al final del nombre: `" Bebidas "` y `"bebidas"` se consideran el mismo nombre.
+- Una descripción vacía o de solo espacios se guarda como "sin descripción" (`null`).
 - Los nombres de producto sí se pueden repetir (la regla de unicidad solo aplica a categorías).
 - Crear o editar un producto con una categoría inexistente responde `400 Bad Request`.
 - Longitud máxima: nombre 100 caracteres, descripción 500.
