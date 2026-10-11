@@ -32,9 +32,19 @@ tests/
 
 ## Cómo correr
 
-```bash
-dotnet run --project src/CategoriesProducts.Api
-```
+1. Levantar SQL Server Express en Docker (la primera vez descarga la imagen):
+
+   ```bash
+   docker compose up -d
+   ```
+
+   La contraseña de `sa` por defecto es solo para desarrollo local; se puede cambiar creando un archivo `.env` con `MSSQL_SA_PASSWORD=<otra contraseña>`.
+
+2. Correr la API:
+
+   ```bash
+   dotnet run --project src/CategoriesProducts.Api
+   ```
 
 La API queda en `http://localhost:5071`.
 
