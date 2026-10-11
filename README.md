@@ -46,6 +46,17 @@ tests/
    dotnet run --project src/CategoriesProducts.Api
    ```
 
+   Al arrancar, la API crea la base de datos `CategoriesProducts` y aplica las migraciones pendientes de Entity Framework.
+
+### Crear una migración nueva
+
+`dotnet-ef` está registrado como herramienta local del repositorio (`dotnet-tools.json`):
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Nombre> --project src/CategoriesProducts.Api --output-dir Data/Migrations
+```
+
 La API queda en `http://localhost:5071`.
 
 ## Cómo correr las pruebas
@@ -75,6 +86,8 @@ dotnet test
 - **Arquitectura simple por capas** (Controllers → Services → EF Core) en un solo proyecto de API: el dominio es pequeño y una arquitectura con más capas agregaría ceremonia sin beneficio.
 - **Escenarios BDD contra la API real**: los steps de ReqNRoll hacen peticiones HTTP a la API levantada en memoria (`WebApplicationFactory`) con un SQL Server real en contenedor (Testcontainers). Así los escenarios validan también códigos HTTP y mensajes.
 - **Unicidad case-insensitive en la aplicación**: se guarda un nombre normalizado con índice único en lugar de depender de la collation de la base de datos.
+- **Borrado restringido en la base de datos**: la llave foránea de productos a categorías usa `ON DELETE RESTRICT`, así que aunque falle la validación de la API, SQL Server tampoco permite borrar una categoría con productos.
+- **Migraciones al arrancar**: la API aplica las migraciones al iniciar para que correrla sea un solo paso. En un sistema con varias instancias se aplicarían en el pipeline de despliegue.
 
 ## Supuestos
 
