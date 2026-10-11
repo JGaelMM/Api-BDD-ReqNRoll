@@ -61,6 +61,8 @@ La API queda en `http://localhost:5071`.
 
 ## Cómo correr las pruebas
 
+Docker Desktop debe estar corriendo: los escenarios BDD levantan su propio SQL Server en un contenedor temporal (Testcontainers), independiente del de `docker compose`.
+
 ```bash
 dotnet test
 ```
