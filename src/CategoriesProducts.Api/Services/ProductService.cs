@@ -35,8 +35,10 @@ public class ProductService(AppDbContext db)
         var category = await ValidateAsync(request, cancellationToken);
 
         var product = new Product { Name = request.Name!, Description = request.Description, Category = category };
+        await EnsureNameIsAvailableAsync(product, cancellationToken);
+
         db.Products.Add(product);
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveAsync(product, cancellationToken);
 
         return ToResponseFrom(product);
     }
@@ -49,7 +51,9 @@ public class ProductService(AppDbContext db)
         product.Name = request.Name!;
         product.Description = request.Description;
         product.Category = category;
-        await db.SaveChangesAsync(cancellationToken);
+        await EnsureNameIsAvailableAsync(product, cancellationToken);
+
+        await SaveAsync(product, cancellationToken);
 
         return ToResponseFrom(product);
     }
@@ -82,6 +86,39 @@ public class ProductService(AppDbContext db)
         return await db.Categories.FirstOrDefaultAsync(c => c.Id == categoryId, cancellationToken)
             ?? throw new ValidationException("La categoría indicada no existe.");
     }
+
+    private async Task EnsureNameIsAvailableAsync(Product product, CancellationToken cancellationToken)
+    {
+        if (await IsNameTakenByAnotherProductAsync(product, cancellationToken))
+        {
+            throw DuplicateName(product.Name);
+        }
+    }
+
+    private async Task SaveAsync(Product product, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            if (await IsNameTakenByAnotherProductAsync(product, cancellationToken))
+            {
+                throw DuplicateName(product.Name);
+            }
+
+            throw;
+        }
+    }
+
+    private Task<bool> IsNameTakenByAnotherProductAsync(Product product, CancellationToken cancellationToken) =>
+        db.Products.AsNoTracking().AnyAsync(
+            p => p.NormalizedName == product.NormalizedName && p.Id != product.Id,
+            cancellationToken);
+
+    private static ConflictException DuplicateName(string name) =>
+        new($"Ya existe un producto con el nombre '{name}'.");
 
     private static NotFoundException ProductNotFound() => new("No se encontró el producto.");
 }

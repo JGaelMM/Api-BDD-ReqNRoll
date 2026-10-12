@@ -13,8 +13,14 @@ public class Product
     public string Name
     {
         get => _name;
-        set => _name = value.Trim();
+        set
+        {
+            _name = value.Trim();
+            NormalizedName = Normalize(_name);
+        }
     }
+
+    public string NormalizedName { get; private set; } = string.Empty;
 
     public string? Description
     {
@@ -25,4 +31,6 @@ public class Product
     public int CategoryId { get; set; }
 
     public Category Category { get; set; } = null!;
+
+    public static string Normalize(string name) => name.Trim().ToUpperInvariant();
 }

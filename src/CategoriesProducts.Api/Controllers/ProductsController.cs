@@ -25,21 +25,23 @@ public class ProductsController(ProductService productService) : ControllerBase
     public Task<ProductResponse> GetById(int id, CancellationToken cancellationToken) =>
         productService.GetByIdAsync(id, cancellationToken);
 
-    /// <summary>Crea un producto. El nombre y la categoría son requeridos; la descripción es opcional.</summary>
+    /// <summary>Crea un producto. El nombre y la categoría son requeridos; la descripción es opcional. El nombre no se puede repetir (sin importar mayúsculas/minúsculas).</summary>
     [HttpPost]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ProductResponse>> Create(ProductRequest request, CancellationToken cancellationToken)
     {
         var product = await productService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
-    /// <summary>Edita un producto, incluida su categoría.</summary>
+    /// <summary>Edita un producto, incluida su categoría. Aplican las mismas reglas que al crear.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public Task<ProductResponse> Update(int id, ProductRequest request, CancellationToken cancellationToken) =>
         productService.UpdateAsync(id, request, cancellationToken);
 

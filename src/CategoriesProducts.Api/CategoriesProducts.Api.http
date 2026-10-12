@@ -89,6 +89,15 @@ Content-Type: application/json
 ### Eliminar un producto (204)
 DELETE {{CategoriesProducts.Api_HostAddress}}/api/products/1
 
+### Crear un producto con nombre repetido (409)
+POST {{CategoriesProducts.Api_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "COCA-COLA",
+  "categoryId": 1
+}
+
 ### Crear un producto sin categoría (400)
 POST {{CategoriesProducts.Api_HostAddress}}/api/products
 Content-Type: application/json

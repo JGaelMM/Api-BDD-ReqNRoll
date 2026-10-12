@@ -2,7 +2,7 @@
 
 API REST en **.NET 10** con **Entity Framework Core** y **SQL Server** para administrar categorías y sus productos, desarrollada con **BDD** (Gherkin + ReqNRoll) y **TDD**: primero se escribieron los escenarios de negocio y las pruebas, y después el código que los hace pasar.
 
-- **84 escenarios BDD** y **66 pruebas unitarias**, todos en verde y ejecutados en cada push por GitHub Actions.
+- **94 escenarios BDD** y **75 pruebas unitarias**, todos en verde y ejecutados en cada push por GitHub Actions.
 - Se levanta completa con `docker compose up -d --build` y se prueba desde el navegador con Swagger UI.
 
 ## Contenido
@@ -133,8 +133,8 @@ dotnet test
 Resultado esperado:
 
 ```
-Correctas! - Con error: 0, Superado: 66, Total: 66 - CategoriesProducts.UnitTests.dll
-Correctas! - Con error: 0, Superado: 84, Total: 84 - CategoriesProducts.Specs.dll
+Correctas! - Con error: 0, Superado: 75, Total: 75 - CategoriesProducts.UnitTests.dll
+Correctas! - Con error: 0, Superado: 94, Total: 94 - CategoriesProducts.Specs.dll
 ```
 
 Para correr solo una característica, por ejemplo eliminar categorías:
@@ -156,8 +156,8 @@ En cada push y pull request a `main`, [GitHub Actions](.github/workflows/ci.yml)
 | `DELETE` | `/api/categories/{id}` | Eliminar (solo si no tiene productos) | 204, 404, 409 |
 | `GET` | `/api/products?page=1&pageSize=20` | Lista paginada, ordenada por nombre | 200, 400 |
 | `GET` | `/api/products/{id}` | Detalle | 200, 404 |
-| `POST` | `/api/products` | Crear | 201, 400 |
-| `PUT` | `/api/products/{id}` | Editar, incluida su categoría | 200, 400, 404 |
+| `POST` | `/api/products` | Crear | 201, 400, 409 |
+| `PUT` | `/api/products/{id}` | Editar, incluida su categoría | 200, 400, 404, 409 |
 | `DELETE` | `/api/products/{id}` | Eliminar | 204, 404 |
 
 Ejemplo de producto: siempre incluye el id **y el nombre** de su categoría.
@@ -201,7 +201,7 @@ Todos los errores responden con el formato estándar [ProblemDetails (RFC 9457)]
 | `204 No Content` | Eliminación exitosa | |
 | `400 Bad Request` | Datos inválidos | "El nombre es requerido.", "El nombre no puede tener más de 100 caracteres.", "La categoría es requerida.", "La categoría indicada no existe.", "La página debe ser mayor o igual a 1." |
 | `404 Not Found` | El recurso no existe | "No se encontró la categoría.", "No se encontró el producto." |
-| `409 Conflict` | La operación choca con los datos actuales | "Ya existe una categoría con el nombre 'BEBIDAS'.", "Esta categoría no se puede eliminar porque tiene productos asignados." |
+| `409 Conflict` | La operación choca con los datos actuales | "Ya existe una categoría con el nombre 'BEBIDAS'.", "Ya existe un producto con el nombre 'coca-cola'.", "Esta categoría no se puede eliminar porque tiene productos asignados." |
 | `500` | Error inesperado | Mensaje genérico, sin exponer detalles internos |
 
 
@@ -225,7 +225,8 @@ Avance de los escenarios a lo largo del historial:
 | Crear categorías | 13 / 84 |
 | Consultar y editar categorías | 40 / 84 |
 | Crear, consultar, editar y eliminar productos | 78 / 84 |
-| Eliminar categorías | **84 / 84** |
+| Eliminar categorías | 84 / 84 |
+| Cambio de requerimiento: nombre de producto único sin importar mayúsculas | **94 / 94** |
 
 ### Planeación y división de commits
 
@@ -248,7 +249,7 @@ Los mensajes siguen [Conventional Commits](https://www.conventionalcommits.org/)
 - **Escenarios BDD contra la API real:** los steps hacen peticiones HTTP a la API en memoria con un SQL Server real (Testcontainers). Así validan también rutas, códigos HTTP, mensajes y el comportamiento real de la base de datos (collation, índices, llaves foráneas), que una base en memoria no reproduce.
 - **Pruebas unitarias con SQLite en memoria:** las pruebas de servicios necesitan una base relacional (índices únicos, llaves foráneas), pero deben ser rápidas y no depender de Docker. SQLite en memoria cumple ambas cosas; lo que depende de SQL Server se cubre en los escenarios BDD.
 - **Errores como excepciones de negocio + ProblemDetails:** los servicios lanzan `ValidationException` (400), `NotFoundException` (404) o `ConflictException` (409), y un `IExceptionHandler` global las convierte en ProblemDetails. Los controllers quedan limpios y todas las respuestas de error tienen el mismo formato.
-- **Unicidad case-insensitive en la aplicación:** se guarda un `NormalizedName` (sin espacios a los lados y en mayúsculas) con índice único, en lugar de depender de la collation de la base de datos. Si dos peticiones con el mismo nombre llegan al mismo tiempo, el índice rechaza la segunda y se responde igual que un duplicado (409).
+- **Unicidad case-insensitive en la aplicación:** categorías y productos guardan un `NormalizedName` (sin espacios a los lados y en mayúsculas) con índice único, en lugar de depender de la collation de la base de datos. Si dos peticiones con el mismo nombre llegan al mismo tiempo, el índice rechaza la segunda y se responde igual que un duplicado (409).
 - **Borrado restringido también en la base de datos:** la llave foránea de productos a categorías usa `ON DELETE RESTRICT`. Si se asigna un producto justo después de validar, SQL Server rechaza el borrado y la API responde con el mismo mensaje.
 - **DTOs separados de las entidades:** la API nunca expone las entidades de EF; el producto se devuelve con un resumen de su categoría (`id` y `name`) obtenido con un `JOIN`, así siempre muestra el nombre actual.
 - **Migraciones al arrancar:** la API aplica las migraciones al iniciar para que correrla sea un solo paso. En un sistema con varias instancias se aplicarían en el pipeline de despliegue.
@@ -260,12 +261,12 @@ Puntos que no estaban especificados y cómo se resolvieron:
 
 - Se ignoran los espacios al inicio y al final del nombre: `" Bebidas "` se guarda como `"Bebidas"` y se considera igual a `"bebidas"`.
 - Una descripción vacía o de solo espacios se guarda como "sin descripción" (`null`).
-- Los nombres de producto **sí** se pueden repetir; la regla de unicidad solo aplica a categorías.
+- El nombre de un producto es único en todo el catálogo, no solo dentro de su categoría: no puede haber `Coca-Cola` en `Bebidas` y `coca-cola` en `Refrescos`.
 - Crear o editar un producto con una categoría inexistente responde `400 Bad Request`, porque es un dato inválido del cuerpo de la petición, no un recurso de la URL.
 - Longitudes máximas: nombre 100 caracteres, descripción 500.
 - Los listados (INDEX) son paginados (`page` y `pageSize`; por defecto 1 y 20, máximo 100), ya que devolver todos los registros no escala. Se ordenan por nombre.
 - Editar es un reemplazo completo (`PUT`): si no se envía descripción, la descripción se quita.
-- Una categoría puede renombrarse a su mismo nombre con otras mayúsculas ("Bebidas" → "BEBIDAS").
+- Una categoría o un producto puede renombrarse a su mismo nombre con otras mayúsculas ("Bebidas" → "BEBIDAS").
 
 ## Cómo aprendí BDD y ReqNRoll
 

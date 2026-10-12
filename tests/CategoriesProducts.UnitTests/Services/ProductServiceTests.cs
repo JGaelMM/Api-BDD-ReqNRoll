@@ -29,15 +29,57 @@ public sealed class ProductServiceTests : IDisposable
         Assert.Equal(new CategorySummary(bebidas.Id, "Bebidas"), created.Category);
     }
 
-    [Fact]
-    public async Task CreateAsync_AllowsRepeatedNames()
+    [Theory]
+    [InlineData("Coca-Cola")]
+    [InlineData("COCA-COLA")]
+    [InlineData("  coca-cola  ")]
+    public async Task CreateAsync_WithExistingName_ThrowsConflictAndDoesNotSave(string name)
     {
         var bebidas = await CreateCategory("Bebidas");
         await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
 
-        var repeated = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+        var error = await Assert.ThrowsAsync<ConflictException>(
+            () => CreateService().CreateAsync(new ProductRequest(name, null, bebidas.Id)));
 
-        Assert.Equal("Coca-Cola", repeated.Name);
+        Assert.Equal($"Ya existe un producto con el nombre '{name.Trim()}'.", error.Message);
+        using var db = _database.CreateContext();
+        Assert.Single(db.Products);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithExistingNameInAnotherCategory_ThrowsConflict()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var refrescos = await CreateCategory("Refrescos");
+        await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+
+        await Assert.ThrowsAsync<ConflictException>(
+            () => CreateService().CreateAsync(new ProductRequest("coca-cola", null, refrescos.Id)));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CanKeepItsOwnNameWithDifferentCase()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var created = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+
+        var updated = await CreateService().UpdateAsync(created.Id, new ProductRequest("COCA-COLA", null, bebidas.Id));
+
+        Assert.Equal("COCA-COLA", updated.Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithTheNameOfAnotherProduct_ThrowsConflictAndDoesNotChange()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var cocaCola = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+        await CreateService().CreateAsync(new ProductRequest("Sprite", null, bebidas.Id));
+
+        var error = await Assert.ThrowsAsync<ConflictException>(
+            () => CreateService().UpdateAsync(cocaCola.Id, new ProductRequest("sprite", null, bebidas.Id)));
+
+        Assert.Equal("Ya existe un producto con el nombre 'sprite'.", error.Message);
+        Assert.Equal("Coca-Cola", (await CreateService().GetByIdAsync(cocaCola.Id)).Name);
     }
 
     [Fact]

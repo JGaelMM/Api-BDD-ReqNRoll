@@ -25,10 +25,30 @@ Característica: Crear productos
     Entonces el producto se crea correctamente
     Y el producto creado tiene el nombre "Coca-Cola"
 
-  Escenario: Se pueden crear productos con el mismo nombre
+  Esquema del escenario: No se puede repetir el nombre de un producto sin importar mayúsculas y minúsculas
     Dado que existe un producto con nombre "Coca-Cola" en la categoría "Bebidas"
-    Cuando creo un producto con nombre "Coca-Cola" sin descripción en la categoría "Bebidas"
-    Entonces el producto se crea correctamente
+    Cuando creo un producto con nombre "<nombre>" sin descripción en la categoría "Bebidas"
+    Entonces la solicitud es rechazada por conflicto
+    Y el mensaje de error es "Ya existe un producto con el nombre '<nombre>'."
+
+    Ejemplos:
+      | nombre    |
+      | Coca-Cola |
+      | coca-cola |
+      | COCA-COLA |
+      | cOcA-cOlA |
+
+  Escenario: No se puede repetir el nombre de un producto aunque tenga espacios al inicio o al final
+    Dado que existe un producto con nombre "Coca-Cola" en la categoría "Bebidas"
+    Cuando creo un producto con nombre "  coca-cola  " sin descripción en la categoría "Bebidas"
+    Entonces la solicitud es rechazada por conflicto
+
+  Escenario: No se puede repetir el nombre de un producto aunque esté en otra categoría
+    Dado que existe una categoría con nombre "Refrescos"
+    Y que existe un producto con nombre "Coca-Cola" en la categoría "Bebidas"
+    Cuando creo un producto con nombre "coca-cola" sin descripción en la categoría "Refrescos"
+    Entonces la solicitud es rechazada por conflicto
+    Y el mensaje de error es "Ya existe un producto con el nombre 'coca-cola'."
 
   Escenario: No se puede crear un producto sin nombre
     Cuando creo un producto sin nombre en la categoría "Bebidas"

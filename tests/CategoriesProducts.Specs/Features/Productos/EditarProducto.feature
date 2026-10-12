@@ -31,6 +31,29 @@ Característica: Editar productos
     Entonces el producto se actualiza correctamente
     Y el producto actualizado tiene el nombre "Coca-Cola Zero"
 
+  Escenario: Un producto puede conservar su nombre cambiando mayúsculas y minúsculas
+    Cuando edito el producto "Coca-Cola" con nombre "COCA-COLA" sin descripción en la categoría "Bebidas"
+    Entonces el producto se actualiza correctamente
+    Y el producto actualizado tiene el nombre "COCA-COLA"
+
+  Esquema del escenario: No se puede usar el nombre de otro producto sin importar mayúsculas y minúsculas
+    Dado que existe un producto con nombre "Sprite" en la categoría "Botanas"
+    Cuando edito el producto "Coca-Cola" con nombre "<nombre>" sin descripción en la categoría "Bebidas"
+    Entonces la solicitud es rechazada por conflicto
+    Y el mensaje de error es "Ya existe un producto con el nombre '<nombre>'."
+
+    Ejemplos:
+      | nombre |
+      | Sprite |
+      | sprite |
+      | SPRITE |
+
+  Escenario: Un nombre rechazado no modifica el producto
+    Dado que existe un producto con nombre "Sprite" en la categoría "Bebidas"
+    Cuando edito el producto "Coca-Cola" con nombre "Sprite" sin descripción en la categoría "Bebidas"
+    Entonces la solicitud es rechazada por conflicto
+    Y al consultar el detalle del producto "Coca-Cola" tiene la descripción "Refresco de cola"
+
   Escenario: No se puede editar un producto dejándolo sin nombre
     Cuando edito el producto "Coca-Cola" sin nombre en la categoría "Bebidas"
     Entonces la solicitud es rechazada por datos inválidos

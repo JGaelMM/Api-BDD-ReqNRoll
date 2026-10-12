@@ -13,6 +13,27 @@ public class ProductTests
     }
 
     [Theory]
+    [InlineData("Coca-Cola")]
+    [InlineData("coca-cola")]
+    [InlineData("  COCA-COLA  ")]
+    public void NormalizedName_IsTheSameRegardlessOfCaseAndSurroundingSpaces(string name)
+    {
+        var product = new Product { Name = name };
+
+        Assert.Equal("COCA-COLA", product.NormalizedName);
+    }
+
+    [Fact]
+    public void NormalizedName_IsUpdatedWhenNameChanges()
+    {
+        var product = new Product { Name = "Coca-Cola" };
+
+        product.Name = "Agua Ciel";
+
+        Assert.Equal("AGUA CIEL", product.NormalizedName);
+    }
+
+    [Theory]
     [InlineData(null, null)]
     [InlineData("   ", null)]
     [InlineData("  Refresco de cola  ", "Refresco de cola")]

@@ -22,6 +22,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Product>(product =>
         {
             product.Property(p => p.Name).HasMaxLength(Product.NameMaxLength).IsRequired();
+            product.Property(p => p.NormalizedName).HasMaxLength(Product.NameMaxLength).IsRequired();
+            product.HasIndex(p => p.NormalizedName).IsUnique();
             product.Property(p => p.Description).HasMaxLength(Product.DescriptionMaxLength);
 
             // Restrict: la base de datos tampoco permite borrar una categoría que tenga productos.
