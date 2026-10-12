@@ -38,8 +38,35 @@ public class ProductService(AppDbContext db)
         db.Products.Add(product);
         await db.SaveChangesAsync(cancellationToken);
 
-        return new ProductResponse(product.Id, product.Name, product.Description, new CategorySummary(category.Id, category.Name));
+        return ToResponseFrom(product);
     }
+
+    public async Task<ProductResponse> UpdateAsync(int id, ProductRequest request, CancellationToken cancellationToken = default)
+    {
+        var category = await ValidateAsync(request, cancellationToken);
+
+        var product = await FindAsync(id, cancellationToken);
+        product.Name = request.Name!;
+        product.Description = request.Description;
+        product.Category = category;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ToResponseFrom(product);
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var product = await FindAsync(id, cancellationToken);
+
+        db.Products.Remove(product);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<Product> FindAsync(int id, CancellationToken cancellationToken) =>
+        await db.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken) ?? throw ProductNotFound();
+
+    private static ProductResponse ToResponseFrom(Product product) =>
+        new(product.Id, product.Name, product.Description, new CategorySummary(product.Category.Id, product.Category.Name));
 
     /// <summary>Valida los datos y regresa la categoría indicada.</summary>
     private async Task<Category> ValidateAsync(ProductRequest request, CancellationToken cancellationToken)

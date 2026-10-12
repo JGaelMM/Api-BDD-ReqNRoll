@@ -11,6 +11,8 @@ public class ProductSteps(HttpClient client, ApiContext context)
 {
     private const string ProductsUrl = "/api/products";
 
+    private int _deletedProductId;
+
     // ---------- Dado ----------
 
     [Given("que existe un producto con nombre {string} en la categoría {string}")]
@@ -79,6 +81,62 @@ public class ProductSteps(HttpClient client, ApiContext context)
     private async Task CreateProduct(string? name, string? description, int? categoryId) =>
         context.LastResponse = await client.PostAsJsonAsync(ProductsUrl, new ProductRequest(name, description, categoryId));
 
+    [When("edito el producto {string} con nombre {string}, descripción {string} y categoría {string}")]
+    public Task WhenIUpdateAProduct(string currentName, string name, string description, string category) =>
+        UpdateProduct(context.ProductIds[currentName], name, description, context.CategoryIds[category]);
+
+    [When("edito el producto {string} con nombre {string} sin descripción en la categoría {string}")]
+    public Task WhenIUpdateAProductWithoutDescription(string currentName, string name, string category) =>
+        UpdateProduct(context.ProductIds[currentName], name, null, context.CategoryIds[category]);
+
+    [When("edito el producto {string} sin nombre en la categoría {string}")]
+    public Task WhenIUpdateAProductWithoutName(string currentName, string category) =>
+        UpdateProduct(context.ProductIds[currentName], null, null, context.CategoryIds[category]);
+
+    [When("edito el producto {string} con un nombre de {int} caracteres en la categoría {string}")]
+    public Task WhenIUpdateAProductWithNameLength(string currentName, int length, string category) =>
+        UpdateProduct(context.ProductIds[currentName], new string('a', length), null, context.CategoryIds[category]);
+
+    [When("edito el producto {string} con nombre {string} y una descripción de {int} caracteres en la categoría {string}")]
+    public Task WhenIUpdateAProductWithDescriptionLength(string currentName, string name, int length, string category) =>
+        UpdateProduct(context.ProductIds[currentName], name, new string('a', length), context.CategoryIds[category]);
+
+    [When("edito el producto {string} con nombre {string} sin categoría")]
+    public Task WhenIUpdateAProductWithoutCategory(string currentName, string name) =>
+        UpdateProduct(context.ProductIds[currentName], name, null, null);
+
+    [When("edito el producto {string} con nombre {string} en una categoría que no existe")]
+    public Task WhenIUpdateAProductToANonExistentCategory(string currentName, string name) =>
+        UpdateProduct(context.ProductIds[currentName], name, null, NonExistentId);
+
+    [When("edito un producto que no existe con nombre {string} en la categoría {string}")]
+    public Task WhenIUpdateANonExistentProduct(string name, string category) =>
+        UpdateProduct(NonExistentId, name, null, context.CategoryIds[category]);
+
+    private async Task UpdateProduct(int id, string? name, string? description, int? categoryId)
+    {
+        context.LastResponse = await client.PutAsJsonAsync($"{ProductsUrl}/{id}", new ProductRequest(name, description, categoryId));
+
+        // Si cambió de nombre, los siguientes steps lo buscan por el nombre nuevo.
+        if (context.LastResponse.IsSuccessStatusCode)
+        {
+            var product = await ReadProduct();
+            context.ProductIds[product.Name] = product.Id;
+        }
+    }
+
+    [When("elimino el producto {string}")]
+    public Task WhenIDeleteTheProduct(string name) => DeleteProduct(context.ProductIds[name]);
+
+    [When("elimino un producto que no existe")]
+    public Task WhenIDeleteANonExistentProduct() => DeleteProduct(NonExistentId);
+
+    private async Task DeleteProduct(int id)
+    {
+        _deletedProductId = id;
+        context.LastResponse = await client.DeleteAsync($"{ProductsUrl}/{id}");
+    }
+
     [When("consulto la lista de productos")]
     public async Task WhenIListProducts() => context.LastResponse = await client.GetAsync(ProductsUrl);
 
@@ -117,6 +175,46 @@ public class ProductSteps(HttpClient client, ApiContext context)
 
     [Then("el producto creado pertenece a la categoría {string}")]
     public async Task ThenTheProductBelongsTo(string category) => AssertCategory(await ReadProduct(), category);
+
+    [Then("el producto se actualiza correctamente")]
+    public void ThenTheProductIsUpdated() => Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);
+
+    [Then("el producto actualizado tiene el nombre {string}")]
+    public Task ThenTheUpdatedProductHasName(string name) => ThenTheProductHasName(name);
+
+    [Then("el producto se elimina correctamente")]
+    public void ThenTheProductIsDeleted() => Assert.Equal(HttpStatusCode.NoContent, context.Response.StatusCode);
+
+    [Then("al consultar el detalle del producto {string} tiene la descripción {string}")]
+    public async Task ThenTheStoredProductHasDescription(string name, string description) =>
+        Assert.Equal(description, (await GetStoredProduct(name)).Description);
+
+    [Then("al consultar el detalle del producto {string} no tiene descripción")]
+    public async Task ThenTheStoredProductHasNoDescription(string name) =>
+        Assert.Null((await GetStoredProduct(name)).Description);
+
+    [Then("al consultar el detalle del producto {string} muestra el id y el nombre de la categoría {string}")]
+    public async Task ThenTheStoredProductShowsCategory(string name, string category) =>
+        AssertCategory(await GetStoredProduct(name), category);
+
+    [Then("al consultar el detalle del producto {string} se encuentra")]
+    public Task ThenTheStoredProductIsFound(string name) => GetStoredProduct(name);
+
+    [Then("al consultar el detalle del producto eliminado no se encuentra")]
+    public async Task ThenTheDeletedProductIsNotFound()
+    {
+        var response = await client.GetAsync($"{ProductsUrl}/{_deletedProductId}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // Consulta el detalle sin reemplazar la última respuesta, para comprobar lo que quedó guardado.
+    private async Task<ProductResponse> GetStoredProduct(string name)
+    {
+        var product = await client.GetFromJsonAsync<ProductResponse>($"{ProductsUrl}/{context.ProductIds[name]}");
+        Assert.NotNull(product);
+        Assert.Equal(name, product.Name);
+        return product;
+    }
 
     [Then("el producto se encuentra")]
     public void ThenTheProductIsFound() => Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);

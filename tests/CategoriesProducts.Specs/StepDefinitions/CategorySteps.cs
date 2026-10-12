@@ -160,6 +160,9 @@ public class CategorySteps(HttpClient client, ApiContext context)
     public async Task ThenTheStoredCategoryHasNoDescription(string name) =>
         Assert.Null((await GetStoredCategory(name)).Description);
 
+    [Then("al consultar el detalle de la categoría {string} se encuentra")]
+    public Task ThenTheStoredCategoryIsFound(string name) => GetStoredCategory(name);
+
     // Consulta el detalle sin reemplazar la última respuesta, para comprobar lo que quedó guardado.
     private async Task<CategoryResponse> GetStoredCategory(string name)
     {

@@ -72,6 +72,78 @@ public sealed class ProductServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_ChangesNameDescriptionAndCategory()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var botanas = await CreateCategory("Botanas");
+        var created = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", "Refresco", bebidas.Id));
+
+        var updated = await CreateService().UpdateAsync(created.Id, new ProductRequest("  Doritos  ", null, botanas.Id));
+
+        var expected = new ProductResponse(created.Id, "Doritos", null, new CategorySummary(botanas.Id, "Botanas"));
+        Assert.Equal(expected, updated);
+        Assert.Equal(expected, await CreateService().GetByIdAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithNonExistentCategory_ThrowsValidationAndDoesNotChange()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var created = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+
+        var error = await Assert.ThrowsAsync<ValidationException>(
+            () => CreateService().UpdateAsync(created.Id, new ProductRequest("Coca-Cola", null, 999)));
+
+        Assert.Equal("La categoría indicada no existe.", error.Message);
+        Assert.Equal(bebidas.Id, (await CreateService().GetByIdAsync(created.Id)).Category.Id);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithoutCategory_ThrowsValidation()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var created = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+
+        var error = await Assert.ThrowsAsync<ValidationException>(
+            () => CreateService().UpdateAsync(created.Id, new ProductRequest("Coca-Cola", null, null)));
+
+        Assert.Equal("La categoría es requerida.", error.Message);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenItDoesNotExist_ThrowsNotFound()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+
+        var error = await Assert.ThrowsAsync<NotFoundException>(
+            () => CreateService().UpdateAsync(999, new ProductRequest("Coca-Cola", null, bebidas.Id)));
+
+        Assert.Equal("No se encontró el producto.", error.Message);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesOnlyThatProduct()
+    {
+        var bebidas = await CreateCategory("Bebidas");
+        var cocaCola = await CreateService().CreateAsync(new ProductRequest("Coca-Cola", null, bebidas.Id));
+        var sprite = await CreateService().CreateAsync(new ProductRequest("Sprite", null, bebidas.Id));
+
+        await CreateService().DeleteAsync(cocaCola.Id);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => CreateService().GetByIdAsync(cocaCola.Id));
+        Assert.Equal(sprite, await CreateService().GetByIdAsync(sprite.Id));
+        Assert.Equal(bebidas, await new CategoryService(_database.CreateContext()).GetByIdAsync(bebidas.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenItDoesNotExist_ThrowsNotFound()
+    {
+        var error = await Assert.ThrowsAsync<NotFoundException>(() => CreateService().DeleteAsync(999));
+
+        Assert.Equal("No se encontró el producto.", error.Message);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ReturnsTheProductWithItsCategoryName()
     {
         var bebidas = await CreateCategory("Bebidas");

@@ -29,4 +29,20 @@ public class ProductsController(ProductService productService) : ControllerBase
         var product = await productService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<ProductResponse> Update(int id, ProductRequest request, CancellationToken cancellationToken) =>
+        productService.UpdateAsync(id, request, cancellationToken);
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        await productService.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
 }

@@ -73,6 +73,19 @@ Content-Type: application/json
   "categoryId": 1
 }
 
+### Editar un producto (incluida su categoría)
+PUT {{CategoriesProducts.Api_HostAddress}}/api/products/1
+Content-Type: application/json
+
+{
+  "name": "Coca-Cola Zero",
+  "description": "Refresco sin azúcar",
+  "categoryId": 1
+}
+
+### Eliminar un producto (204)
+DELETE {{CategoriesProducts.Api_HostAddress}}/api/products/1
+
 ### Crear un producto sin categoría (400)
 POST {{CategoriesProducts.Api_HostAddress}}/api/products
 Content-Type: application/json
