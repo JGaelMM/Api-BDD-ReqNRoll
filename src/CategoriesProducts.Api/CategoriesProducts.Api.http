@@ -57,4 +57,37 @@ Content-Type: application/json
   "description": "Sin nombre"
 }
 
+### Listar productos (cada uno con el id y el nombre de su categoría)
+GET {{CategoriesProducts.Api_HostAddress}}/api/products
+
+### Detalle de un producto
+GET {{CategoriesProducts.Api_HostAddress}}/api/products/1
+
+### Crear un producto
+POST {{CategoriesProducts.Api_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Coca-Cola",
+  "description": "Refresco de cola",
+  "categoryId": 1
+}
+
+### Crear un producto sin categoría (400)
+POST {{CategoriesProducts.Api_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Coca-Cola"
+}
+
+### Crear un producto en una categoría que no existe (400)
+POST {{CategoriesProducts.Api_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Coca-Cola",
+  "categoryId": 999999
+}
+
 ###

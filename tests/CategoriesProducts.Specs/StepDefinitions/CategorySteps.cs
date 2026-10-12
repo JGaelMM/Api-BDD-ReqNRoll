@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using CategoriesProducts.Api.Dtos;
 using CategoriesProducts.Specs.Support;
+using static CategoriesProducts.Specs.Support.StepValues;
 
 namespace CategoriesProducts.Specs.StepDefinitions;
 
@@ -9,7 +10,6 @@ namespace CategoriesProducts.Specs.StepDefinitions;
 public class CategorySteps(HttpClient client, ApiContext context)
 {
     private const string CategoriesUrl = "/api/categories";
-    private const int NonExistentId = int.MaxValue;
 
     // ---------- Dado ----------
 
@@ -36,6 +36,13 @@ public class CategorySteps(HttpClient client, ApiContext context)
         {
             await CreateExistingCategory($"Categoría {i:D2}", null);
         }
+    }
+
+    [Given("que cambio el nombre de la categoría {string} a {string}")]
+    public async Task GivenICategoryIsRenamed(string currentName, string name)
+    {
+        await UpdateCategory(context.CategoryIds[currentName], name, null);
+        Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);
     }
 
     private async Task CreateExistingCategory(string name, string? description)
@@ -205,7 +212,4 @@ public class CategorySteps(HttpClient client, ApiContext context)
 
     private Task<PagedResponse<CategoryResponse>> ReadCategoryPage() =>
         context.ReadBodyAsync<PagedResponse<CategoryResponse>>();
-
-    // Una celda vacía en una tabla de Gherkin significa "sin valor".
-    private static string? EmptyAsNull(string value) => value.Length == 0 ? null : value;
 }

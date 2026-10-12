@@ -27,6 +27,9 @@ public class ApiContext
     /// <summary>Ids de las categorías creadas en el escenario, por nombre.</summary>
     public Dictionary<string, int> CategoryIds { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Ids de los productos creados en el escenario, por nombre.</summary>
+    public Dictionary<string, int> ProductIds { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Deserializa el cuerpo de la última respuesta. El contenido HTTP solo se puede leer una vez,
     /// así que se guarda para que varios steps "Entonces" puedan revisarlo.
