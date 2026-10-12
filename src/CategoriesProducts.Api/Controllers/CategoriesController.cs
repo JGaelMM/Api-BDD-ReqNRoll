@@ -30,4 +30,12 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
         var category = await categoryService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
     }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType<CategoryResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public Task<CategoryResponse> Update(int id, CategoryRequest request, CancellationToken cancellationToken) =>
+        categoryService.UpdateAsync(id, request, cancellationToken);
 }

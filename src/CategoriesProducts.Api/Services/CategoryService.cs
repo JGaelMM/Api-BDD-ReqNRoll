@@ -31,27 +31,42 @@ public class CategoryService(AppDbContext db)
         FieldValidator.ValidateDescription(request.Description, Category.DescriptionMaxLength);
 
         var category = new Category { Name = request.Name!, Description = request.Description };
-        await EnsureNameIsAvailableAsync(category.Name, cancellationToken);
+        await EnsureNameIsAvailableAsync(category, cancellationToken);
 
         db.Categories.Add(category);
-        await SaveAsync(category.Name, cancellationToken);
+        await SaveAsync(category, cancellationToken);
 
         return CategoryResponse.From(category);
     }
 
-    private async Task EnsureNameIsAvailableAsync(string name, CancellationToken cancellationToken)
+    public async Task<CategoryResponse> UpdateAsync(int id, CategoryRequest request, CancellationToken cancellationToken = default)
     {
-        var normalizedName = Category.Normalize(name);
+        FieldValidator.ValidateName(request.Name, Category.NameMaxLength);
+        FieldValidator.ValidateDescription(request.Description, Category.DescriptionMaxLength);
 
-        if (await db.Categories.AnyAsync(c => c.NormalizedName == normalizedName, cancellationToken))
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken)
+            ?? throw CategoryNotFound();
+
+        category.Name = request.Name!;
+        category.Description = request.Description;
+        await EnsureNameIsAvailableAsync(category, cancellationToken);
+
+        await SaveAsync(category, cancellationToken);
+
+        return CategoryResponse.From(category);
+    }
+
+    private async Task EnsureNameIsAvailableAsync(Category category, CancellationToken cancellationToken)
+    {
+        if (await IsNameTakenByAnotherCategoryAsync(category, cancellationToken))
         {
-            throw DuplicateName(name);
+            throw DuplicateName(category.Name);
         }
     }
 
     // Si dos peticiones con el mismo nombre llegan al mismo tiempo, ambas pasan la validación
     // y el índice único de la base de datos rechaza la segunda: se responde igual que un duplicado.
-    private async Task SaveAsync(string name, CancellationToken cancellationToken)
+    private async Task SaveAsync(Category category, CancellationToken cancellationToken)
     {
         try
         {
@@ -59,20 +74,20 @@ public class CategoryService(AppDbContext db)
         }
         catch (DbUpdateException)
         {
-            if (await NameExistsAsync(name, cancellationToken))
+            if (await IsNameTakenByAnotherCategoryAsync(category, cancellationToken))
             {
-                throw DuplicateName(name);
+                throw DuplicateName(category.Name);
             }
 
             throw;
         }
     }
 
-    private Task<bool> NameExistsAsync(string name, CancellationToken cancellationToken)
-    {
-        var normalizedName = Category.Normalize(name);
-        return db.Categories.AsNoTracking().AnyAsync(c => c.NormalizedName == normalizedName, cancellationToken);
-    }
+    // Al editar, la categoría puede conservar su propio nombre (aunque cambie mayúsculas/minúsculas).
+    private Task<bool> IsNameTakenByAnotherCategoryAsync(Category category, CancellationToken cancellationToken) =>
+        db.Categories.AsNoTracking().AnyAsync(
+            c => c.NormalizedName == category.NormalizedName && c.Id != category.Id,
+            cancellationToken);
 
     private static ConflictException DuplicateName(string name) =>
         new($"Ya existe una categoría con el nombre '{name}'.");

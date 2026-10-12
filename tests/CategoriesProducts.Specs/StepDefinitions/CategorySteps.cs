@@ -68,6 +68,41 @@ public class CategorySteps(HttpClient client, ApiContext context)
     private async Task CreateCategory(string? name, string? description) =>
         context.LastResponse = await client.PostAsJsonAsync(CategoriesUrl, new CategoryRequest(name, description));
 
+    [When("edito la categoría {string} con nombre {string} y descripción {string}")]
+    public Task WhenIUpdateACategory(string currentName, string name, string description) =>
+        UpdateCategory(context.CategoryIds[currentName], name, description);
+
+    [When("edito la categoría {string} con nombre {string} sin descripción")]
+    public Task WhenIUpdateACategoryWithoutDescription(string currentName, string name) =>
+        UpdateCategory(context.CategoryIds[currentName], name, null);
+
+    [When("edito la categoría {string} sin nombre")]
+    public Task WhenIUpdateACategoryWithoutName(string currentName) =>
+        UpdateCategory(context.CategoryIds[currentName], null, null);
+
+    [When("edito la categoría {string} con un nombre de {int} caracteres")]
+    public Task WhenIUpdateACategoryWithNameLength(string currentName, int length) =>
+        UpdateCategory(context.CategoryIds[currentName], new string('a', length), null);
+
+    [When("edito la categoría {string} con nombre {string} y una descripción de {int} caracteres")]
+    public Task WhenIUpdateACategoryWithDescriptionLength(string currentName, string name, int length) =>
+        UpdateCategory(context.CategoryIds[currentName], name, new string('a', length));
+
+    [When("edito una categoría que no existe con nombre {string} sin descripción")]
+    public Task WhenIUpdateANonExistentCategory(string name) => UpdateCategory(NonExistentId, name, null);
+
+    private async Task UpdateCategory(int id, string? name, string? description)
+    {
+        context.LastResponse = await client.PutAsJsonAsync($"{CategoriesUrl}/{id}", new CategoryRequest(name, description));
+
+        // Si cambió de nombre, los siguientes steps la buscan por el nombre nuevo.
+        if (context.LastResponse.IsSuccessStatusCode)
+        {
+            var category = await ReadCategory();
+            context.CategoryIds[category.Name] = category.Id;
+        }
+    }
+
     [When("consulto la lista de categorías")]
     public async Task WhenIListCategories() => context.LastResponse = await client.GetAsync(CategoriesUrl);
 
@@ -103,6 +138,29 @@ public class CategorySteps(HttpClient client, ApiContext context)
 
     [Then("la categoría creada no tiene descripción")]
     public async Task ThenTheCreatedCategoryHasNoDescription() => Assert.Null((await ReadCategory()).Description);
+
+    [Then("la categoría se actualiza correctamente")]
+    public void ThenTheCategoryIsUpdated() => Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);
+
+    [Then("la categoría actualizada tiene el nombre {string}")]
+    public Task ThenTheUpdatedCategoryHasName(string name) => ThenTheCreatedCategoryHasName(name);
+
+    [Then("al consultar el detalle de la categoría {string} tiene la descripción {string}")]
+    public async Task ThenTheStoredCategoryHasDescription(string name, string description) =>
+        Assert.Equal(description, (await GetStoredCategory(name)).Description);
+
+    [Then("al consultar el detalle de la categoría {string} no tiene descripción")]
+    public async Task ThenTheStoredCategoryHasNoDescription(string name) =>
+        Assert.Null((await GetStoredCategory(name)).Description);
+
+    // Consulta el detalle sin reemplazar la última respuesta, para comprobar lo que quedó guardado.
+    private async Task<CategoryResponse> GetStoredCategory(string name)
+    {
+        var category = await client.GetFromJsonAsync<CategoryResponse>($"{CategoriesUrl}/{context.CategoryIds[name]}");
+        Assert.NotNull(category);
+        Assert.Equal(name, category.Name);
+        return category;
+    }
 
     [Then("la categoría se encuentra")]
     public void ThenTheCategoryIsFound() => Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);

@@ -63,6 +63,59 @@ public sealed class CategoryServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_ChangesNameAndDescription()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", "Refrescos"));
+
+        var updated = await CreateService().UpdateAsync(created.Id, new CategoryRequest("  Bebidas frías  ", null));
+
+        Assert.Equal(new CategoryResponse(created.Id, "Bebidas frías", null), updated);
+        Assert.Equal(updated, await CreateService().GetByIdAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CanKeepItsOwnNameWithDifferentCase()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", null));
+
+        var updated = await CreateService().UpdateAsync(created.Id, new CategoryRequest("BEBIDAS", null));
+
+        Assert.Equal("BEBIDAS", updated.Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithTheNameOfAnotherCategory_ThrowsConflictAndDoesNotChange()
+    {
+        var service = CreateService();
+        var bebidas = await service.CreateAsync(new CategoryRequest("Bebidas", null));
+        await service.CreateAsync(new CategoryRequest("Lácteos", null));
+
+        var error = await Assert.ThrowsAsync<ConflictException>(
+            () => CreateService().UpdateAsync(bebidas.Id, new CategoryRequest("lácteos", null)));
+
+        Assert.Equal("Ya existe una categoría con el nombre 'lácteos'.", error.Message);
+        Assert.Equal("Bebidas", (await CreateService().GetByIdAsync(bebidas.Id)).Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithInvalidName_ThrowsValidation()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", null));
+
+        await Assert.ThrowsAsync<ValidationException>(
+            () => CreateService().UpdateAsync(created.Id, new CategoryRequest("", null)));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenItDoesNotExist_ThrowsNotFound()
+    {
+        var error = await Assert.ThrowsAsync<NotFoundException>(
+            () => CreateService().UpdateAsync(999, new CategoryRequest("Bebidas", null)));
+
+        Assert.Equal("No se encontró la categoría.", error.Message);
+    }
+
+    [Fact]
     public async Task GetPageAsync_ReturnsTheRequestedPageOrderedByName()
     {
         var service = CreateService();
