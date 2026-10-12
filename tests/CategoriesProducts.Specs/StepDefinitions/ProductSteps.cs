@@ -40,6 +40,21 @@ public class ProductSteps(HttpClient client, ApiContext context)
         }
     }
 
+    [Given("que elimino el producto {string}")]
+    public async Task GivenIDeletedTheProduct(string name)
+    {
+        await DeleteProduct(context.ProductIds[name]);
+        Assert.Equal(HttpStatusCode.NoContent, context.Response.StatusCode);
+    }
+
+    [Given("que muevo el producto {string} a la categoría {string}")]
+    public async Task GivenIMovedTheProduct(string name, string category)
+    {
+        var product = await GetStoredProduct(name);
+        await UpdateProduct(product.Id, product.Name, product.Description, context.CategoryIds[category]);
+        Assert.Equal(HttpStatusCode.OK, context.Response.StatusCode);
+    }
+
     private async Task CreateExistingProduct(string name, string? description, string category)
     {
         var request = new ProductRequest(name, description, context.CategoryIds[category]);

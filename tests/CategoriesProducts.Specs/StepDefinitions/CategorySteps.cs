@@ -11,6 +11,8 @@ public class CategorySteps(HttpClient client, ApiContext context)
 {
     private const string CategoriesUrl = "/api/categories";
 
+    private int _deletedCategoryId;
+
     // ---------- Dado ----------
 
     [Given("que existe una categoría con nombre {string}")]
@@ -110,6 +112,18 @@ public class CategorySteps(HttpClient client, ApiContext context)
         }
     }
 
+    [When("elimino la categoría {string}")]
+    public Task WhenIDeleteTheCategory(string name) => DeleteCategory(context.CategoryIds[name]);
+
+    [When("elimino una categoría que no existe")]
+    public Task WhenIDeleteANonExistentCategory() => DeleteCategory(NonExistentId);
+
+    private async Task DeleteCategory(int id)
+    {
+        _deletedCategoryId = id;
+        context.LastResponse = await client.DeleteAsync($"{CategoriesUrl}/{id}");
+    }
+
     [When("consulto la lista de categorías")]
     public async Task WhenIListCategories() => context.LastResponse = await client.GetAsync(CategoriesUrl);
 
@@ -159,6 +173,16 @@ public class CategorySteps(HttpClient client, ApiContext context)
     [Then("al consultar el detalle de la categoría {string} no tiene descripción")]
     public async Task ThenTheStoredCategoryHasNoDescription(string name) =>
         Assert.Null((await GetStoredCategory(name)).Description);
+
+    [Then("la categoría se elimina correctamente")]
+    public void ThenTheCategoryIsDeleted() => Assert.Equal(HttpStatusCode.NoContent, context.Response.StatusCode);
+
+    [Then("al consultar el detalle de la categoría eliminada no se encuentra")]
+    public async Task ThenTheDeletedCategoryIsNotFound()
+    {
+        var response = await client.GetAsync($"{CategoriesUrl}/{_deletedCategoryId}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 
     [Then("al consultar el detalle de la categoría {string} se encuentra")]
     public Task ThenTheStoredCategoryIsFound(string name) => GetStoredCategory(name);

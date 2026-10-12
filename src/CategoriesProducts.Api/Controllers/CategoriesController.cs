@@ -38,4 +38,14 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public Task<CategoryResponse> Update(int id, CategoryRequest request, CancellationToken cancellationToken) =>
         categoryService.UpdateAsync(id, request, cancellationToken);
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        await categoryService.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
 }

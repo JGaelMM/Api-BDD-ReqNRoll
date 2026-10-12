@@ -56,6 +56,38 @@ public class CategoryService(AppDbContext db)
         return CategoryResponse.From(category);
     }
 
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken)
+            ?? throw CategoryNotFound();
+
+        if (await HasProductsAsync(id, cancellationToken))
+        {
+            throw CategoryHasProducts();
+        }
+
+        db.Categories.Remove(category);
+
+        // Si se asigna un producto justo después de la validación, la llave foránea (ON DELETE RESTRICT)
+        // rechaza el borrado: se responde con el mismo mensaje.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            if (await HasProductsAsync(id, cancellationToken))
+            {
+                throw CategoryHasProducts();
+            }
+
+            throw;
+        }
+    }
+
+    private Task<bool> HasProductsAsync(int categoryId, CancellationToken cancellationToken) =>
+        db.Products.AnyAsync(p => p.CategoryId == categoryId, cancellationToken);
+
     private async Task EnsureNameIsAvailableAsync(Category category, CancellationToken cancellationToken)
     {
         if (await IsNameTakenByAnotherCategoryAsync(category, cancellationToken))
@@ -93,4 +125,7 @@ public class CategoryService(AppDbContext db)
         new($"Ya existe una categoría con el nombre '{name}'.");
 
     private static NotFoundException CategoryNotFound() => new("No se encontró la categoría.");
+
+    private static ConflictException CategoryHasProducts() =>
+        new("Esta categoría no se puede eliminar porque tiene productos asignados.");
 }

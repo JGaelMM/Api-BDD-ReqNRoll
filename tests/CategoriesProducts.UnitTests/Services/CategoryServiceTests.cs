@@ -116,6 +116,49 @@ public sealed class CategoryServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteAsync_WithoutProducts_RemovesTheCategory()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", null));
+
+        await CreateService().DeleteAsync(created.Id);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => CreateService().GetByIdAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithProducts_ThrowsConflictAndKeepsTheCategory()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", null));
+        await new ProductService(_database.CreateContext()).CreateAsync(new ProductRequest("Coca-Cola", null, created.Id));
+
+        var error = await Assert.ThrowsAsync<ConflictException>(() => CreateService().DeleteAsync(created.Id));
+
+        Assert.Equal("Esta categoría no se puede eliminar porque tiene productos asignados.", error.Message);
+        Assert.Equal(created, await CreateService().GetByIdAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_AfterDeletingAllItsProducts_RemovesTheCategory()
+    {
+        var created = await CreateService().CreateAsync(new CategoryRequest("Bebidas", null));
+        var products = new ProductService(_database.CreateContext());
+        var product = await products.CreateAsync(new ProductRequest("Coca-Cola", null, created.Id));
+        await products.DeleteAsync(product.Id);
+
+        await CreateService().DeleteAsync(created.Id);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => CreateService().GetByIdAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenItDoesNotExist_ThrowsNotFound()
+    {
+        var error = await Assert.ThrowsAsync<NotFoundException>(() => CreateService().DeleteAsync(999));
+
+        Assert.Equal("No se encontró la categoría.", error.Message);
+    }
+
+    [Fact]
     public async Task GetPageAsync_ReturnsTheRequestedPageOrderedByName()
     {
         var service = CreateService();

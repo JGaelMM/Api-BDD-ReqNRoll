@@ -49,6 +49,9 @@ Content-Type: application/json
   "name": "Bebidas"
 }
 
+### Eliminar una categoría (204 si no tiene productos, 409 si tiene)
+DELETE {{CategoriesProducts.Api_HostAddress}}/api/categories/1
+
 ### Crear una categoría sin nombre (400)
 POST {{CategoriesProducts.Api_HostAddress}}/api/categories
 Content-Type: application/json
