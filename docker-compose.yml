@@ -18,5 +18,17 @@ services:
       retries: 10
       start_period: 20s
 
+  api:
+    build: .
+    container_name: categoriesproducts-api
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CategoriesProducts;User Id=sa;Password=${MSSQL_SA_PASSWORD:-CategoriesProducts_Dev1};TrustServerCertificate=True"
+    ports:
+      - "8080:8080"
+    # La API aplica las migraciones al arrancar, así que espera a que SQL Server esté listo.
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
 volumes:
   sqlserver-data:

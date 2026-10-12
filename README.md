@@ -32,13 +32,23 @@ tests/
 
 ## Cómo correr
 
-1. Levantar SQL Server Express en Docker (la primera vez descarga la imagen):
+### Opción A: todo en Docker (solo requiere Docker)
+
+```bash
+docker compose up -d --build
+```
+
+Levanta SQL Server Express y la API. Abrir **http://localhost:8080** (redirige a Swagger UI) para probar todos los endpoints desde el navegador.
+
+Para detenerlo: `docker compose down` (los datos se conservan en el volumen `sqlserver-data`; `docker compose down -v` los borra).
+
+### Opción B: la API con el SDK de .NET (para desarrollo)
+
+1. Levantar solo SQL Server Express:
 
    ```bash
-   docker compose up -d
+   docker compose up -d sqlserver
    ```
-
-   La contraseña de `sa` por defecto es solo para desarrollo local; se puede cambiar creando un archivo `.env` con `MSSQL_SA_PASSWORD=<otra contraseña>`.
 
 2. Correr la API:
 
@@ -46,7 +56,11 @@ tests/
    dotnet run --project src/CategoriesProducts.Api
    ```
 
-   Al arrancar, la API crea la base de datos `CategoriesProducts` y aplica las migraciones pendientes de Entity Framework.
+   La API queda en **http://localhost:5071** (Swagger UI en `/swagger`). El archivo [`CategoriesProducts.Api.http`](src/CategoriesProducts.Api/CategoriesProducts.Api.http) tiene peticiones de ejemplo para VS Code o Visual Studio.
+
+En ambas opciones la API crea la base de datos `CategoriesProducts` y aplica las migraciones de Entity Framework al arrancar.
+
+La contraseña de `sa` por defecto es solo para desarrollo local; se puede cambiar creando un archivo `.env` con `MSSQL_SA_PASSWORD=<otra contraseña>`.
 
 ### Crear una migración nueva
 
@@ -56,8 +70,6 @@ tests/
 dotnet tool restore
 dotnet ef migrations add <Nombre> --project src/CategoriesProducts.Api --output-dir Data/Migrations
 ```
-
-La API queda en `http://localhost:5071`.
 
 ## Cómo correr las pruebas
 
