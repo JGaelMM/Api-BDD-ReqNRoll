@@ -8,6 +8,23 @@ namespace CategoriesProducts.Api.Services;
 
 public class CategoryService(AppDbContext db)
 {
+    public Task<PagedResponse<CategoryResponse>> GetPageAsync(
+        int page, int pageSize, CancellationToken cancellationToken = default) =>
+        db.Categories
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .ThenBy(c => c.Id)
+            .Select(c => new CategoryResponse(c.Id, c.Name, c.Description))
+            .ToPagedResponseAsync(page, pageSize, cancellationToken);
+
+    public async Task<CategoryResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var category = await db.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken)
+            ?? throw CategoryNotFound();
+
+        return CategoryResponse.From(category);
+    }
+
     public async Task<CategoryResponse> CreateAsync(CategoryRequest request, CancellationToken cancellationToken = default)
     {
         FieldValidator.ValidateName(request.Name, Category.NameMaxLength);
@@ -59,4 +76,6 @@ public class CategoryService(AppDbContext db)
 
     private static ConflictException DuplicateName(string name) =>
         new($"Ya existe una categoría con el nombre '{name}'.");
+
+    private static NotFoundException CategoryNotFound() => new("No se encontró la categoría.");
 }
