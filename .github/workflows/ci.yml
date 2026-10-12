@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Compilar y probar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restaurar paquetes
+        run: dotnet restore
+
+      - name: Compilar
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Pruebas unitarias y escenarios BDD
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFilePrefix=resultados"
+
+      - name: Publicar resultados de las pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-de-pruebas
+          path: tests/**/TestResults/*.trx
+
+  docker-image:
+    name: Construir la imagen Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Construir la imagen de la API
+        run: docker build --tag categoriesproducts-api .

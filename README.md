@@ -1,5 +1,7 @@
 # API de Categorías y Productos
 
+[![CI](https://github.com/JGaelMM/Api-BDD-ReqNRoll/actions/workflows/ci.yml/badge.svg)](https://github.com/JGaelMM/Api-BDD-ReqNRoll/actions/workflows/ci.yml)
+
 API REST en **.NET 10** para administrar categorías y sus productos, desarrollada con **BDD** (Gherkin + ReqNRoll): primero se escriben los escenarios de negocio y después el código que los hace pasar.
 
 > Estado: en desarrollo. Este README se irá completando conforme avance el proyecto.
@@ -78,6 +80,8 @@ Docker Desktop debe estar corriendo: los escenarios BDD levantan su propio SQL S
 ```bash
 dotnet test
 ```
+
+En cada push y pull request a `main`, [GitHub Actions](.github/workflows/ci.yml) compila la solución, corre todas las pruebas (unitarias y escenarios BDD con SQL Server en contenedor) y construye la imagen Docker de la API.
 
 ## Reglas de negocio
 
